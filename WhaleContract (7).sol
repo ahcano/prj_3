@@ -3,63 +3,65 @@ pragma solidity ^0.8.0;
 
 import "./Lottix.sol";
 import "./GenerateNewLottery.sol";
+import "./ILotteryInterface.sol";
 
 
 contract WhaleAccount {
     ILottery public currentLottery;
     address[] public lotteryAddresses;
     address public FactoryAddress;
+    address payable public PoolKey;
     string public GeneratedLotteryName;
     event CrowdsaleGenerated(address indexed crowdsaleAddress);
-    address public tixTokenAddress;
     uint whalecut;
-    function setCurrentLottery(address _lotteryAddress) public {
-        currentLottery = ILottery(_lotteryAddress);
+    uint initialJackpot;
+    uint treasurycut;
+    uint whalepct_before;
+    uint whalepct_half;
+    uint whalepct_after;
+    uint lotterycap;
+    address payable WhaleKey;
+    address payable TreasuryKey;
+
+
+
+    function setFactoryDetails() public returns (address, address payable){
         FactoryAddress = address(this);
+        TreasuryKey = payable(0x004e1F9B29Db4F4325CaA5933763318D6460F40a);
+        return (FactoryAddress, TreasuryKey);
     }
+    
 
-    function fetchLotteryDetails() public view returns (uint, uint, address, uint, uint, uint, uint, uint, uint) {
-        return(
-            currentLottery.initialJackpot(),
-            currentLottery.treasurycut(),
-            currentLottery.WhaleKey(),
-            currentLottery.ticketprice(),
-            currentLottery.whalepct_before(),
-            currentLottery.whalepct_after(),
-            currentLottery.whalepct_half(),
-            currentLottery.lotterycap(),
-            currentLottery.lottDigitAmount()
-            );
-    }
-
-    function generateLotteryName(string memory _currentLottery, uint initialJackpot) public returns (string memory) {
-        bytes32 timehash = keccak256(abi.encodePacked(currentLottery, block.timestamp));
+    function generateLotteryName(address _ContractKey) public returns (string memory) {
+        bytes32 timehash = keccak256(abi.encodePacked(_ContractKey, block.timestamp));
         // Convert the hash to a string and take the last 5 characters
         string memory hashString = bytes32ToString(timehash);
         string memory lastFive = substring(hashString, bytes(hashString).length - 5, bytes(hashString).length);
-        string memory lotteryName = string(abi.encodePacked(_currentLottery, " #", lastFive, uintToString(initialJackpot)));
+        string memory lotteryName = string(abi.encodePacked(_ContractKey, " #", lastFive, uintToString(initialJackpot)));
         GeneratedLotteryName = lotteryName; // Store the generated name in a state variable if needed elsewhere
         return lotteryName;
     }
 
     function generateLottery(
-        uint256 _tickPrice,
-        uint8 _lottDigitAmount,
-        string memory _currentLottery,
-        uint initialJackpot  
-    ) public {
-        string memory LotteryName = generateLotteryName(_currentLottery, initialJackpot);
+        uint ticketprice,
+        address ContractKey,
+        uint lottDigitAmount,
+        address tixTokenAddress
+    ) public returns (address Payable){
+        string memory LotteryName = generateLotteryName(ContractKey);
 
         Lottix newCrowdsale = new Lottix(
             tixTokenAddress,
             address(this),
-            _lottDigitAmount,
+            lottDigitAmount,
             LotteryName,
-            _tickPrice
+            ticketprice
 
         );
+        PoolKey = payable(address(newCrowdsale));
         lotteryAddresses.push(address(newCrowdsale));
         emit CrowdsaleGenerated(address(newCrowdsale));
+        return(PoolKey);   
     }
 
     function retrieveAddresses() public view returns (address[] memory) {
@@ -116,77 +118,36 @@ contract WhaleAccount {
     }
 
 
-    function LotteryPhase(uint initialJackpot, uint lotterycap) public {
-        if (initialJackpot < lotterycap) {
-            whalecut = whalepct_before;
-        }
-        else {
-            revert("How did you manage a Lottery with no phase?????");
-        }
-    // Distribute payments using basis points for percentages
-       // uint256 whaleAmount = pricing.tickPrice.mul(whalePercentage).div(10000); // Use 10000 for basis point calculation
-        //uint256 treasuryAmount = pricing.tickPrice.mul(treasuryCut).div(100); // Assuming treasuryCut is still a percentage
-        //uint256 poolAmount = pricing.tickPrice.sub(whaleAmount).sub(treasuryAmount);
-
-
-        // Transfer amounts
-       // payable(owner()).transfer(whaleAmount);
-       // payable(address(this)).transfer(treasuryAmount);
-       // payable(lotteryPoolWallet).transfer(poolAmount);
-
+    function LotteryPhase(uint _initialJackpot, uint _lotterycap) public {
+    if (_initialJackpot < _lotterycap / 2) {
+        // If the initialJackpot is less than half the lotterycap, use the before rate
+        whalecut = currentLottery.whalepct_before();
+    } else if (_initialJackpot >= _lotterycap / 2 && initialJackpot <= lotterycap) {
+        // If the initialJackpot is at least half the lotterycap but not more than the cap, use the half rate
+        whalecut = currentLottery.whalepct_half();
+    } else if (_initialJackpot > _lotterycap) {
+        // If the initialJackpot exceeds the lotterycap, use the after rate
+        whalecut = currentLottery.whalepct_after();
+    } else {
+        revert("HOW DID YOU BREAK A DECENTRALIZED LOTTERY????");
     }
+    }
+
+    function payout() public payable {
+        require(msg.value > 0, "No funds to distribute");
+        require(address(this).balance >= msg.value, "Insufficient balance");
+        uint256 whaleAmount = msg.value * whalecut / 10000;
+        uint256 treasuryAmount = msg.value * treasurycut / 10000;
+        uint256 poolAmount = msg.value - whaleAmount - treasuryAmount;    
+
+        WhaleKey.transfer(whaleAmount);
+        TreasuryKey.transfer(treasuryAmount);
+        PoolKey.transfer(poolAmount);
+    }
+
+
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //Check if the crowdsale is open
-    //modifier onlyWhileOpen() {
-        //require(block.timestamp >= timing.openingTime && block.timestamp <= timing.closingTime, "Crowdsale is not open");
-        //;
-    //}
-
-    // Define a function for buying tickets and choosing lottery numbers
-    //function purchaseTickets(uint256[] calldata guesses) external payable onlyWhileOpen nonReentrant whenNotPaused {
-        //require(guesses.length == timing.lottDigitAmount, "Invalid number of digits");
-        //require(msg.value >=pricing.tickPrice, "Insufficient funds");
-
-
-        
-
-        // Save lottery guesses
-        //lotteryGuesses[msg.sender] = guesses;
-
-        // Guess Counter Goes Up By 1
-        //_guessCount++;
-
-        //emit TicketPurchased(msg.sender, guesses); // Run the Event 'LotteryGuess'
-    //}
-    //Define a function to retrieve the number of time someone has guessed on this lottery
-    //function totalGuesses() public view returns (uint256) {
-        //return _guessCount;
-  //  }
-
-    // Define a function to check if the crowdsale is open
-    //function isOpen() public view returns (bool) {
-        //return block.timestamp >= timing.openingTime && block.timestamp <= timing.closingTime;
-  //  }
-
-
 
 
 /* ADMIN FUNCTIONS */

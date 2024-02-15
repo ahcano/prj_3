@@ -14,7 +14,9 @@ contract Lottix is ReentrancyGuard, Ownable{
     string public lotteryName;
     address public initialOwner;
     address public FactoryAddress;
-    event TokensPurchased(address purchaser, uint256[] guess);
+    uint256[] public winningNumbers;
+    uint256 public guesscount;
+    event TokensPurchased(address guesser, uint256[] guess);
 
     
     constructor(
@@ -45,15 +47,21 @@ contract Lottix is ReentrancyGuard, Ownable{
 
         // Instead of transferring the token right away, we just record the user's guess
         guesses[msg.sender] = _guess;
-
+        guesscount++;
 
         emit TokensPurchased(msg.sender, _guess);
     }
 
-    
+    // ADMIN FUNCTIONS
 
     // Allow the contract to receive ETH
     receive() external payable {}
+
+
+
+
+
+
 
     // Function to withdraw collected ETH to the owner's address
     function withdrawETH() external onlyOwner {
