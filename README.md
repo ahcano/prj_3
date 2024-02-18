@@ -11,11 +11,11 @@ If you'd like to hire our team or use this for research/ commercial purposes, pl
 
 **CLICK NAME BELOW TO EMAIL**:
 
-[Daniel Froom](danifroom@gmail.com),
-[Demi Oyebanji](oluwademiladeoyebanji@outlook.com),
-[Ana Cano](anacanoht@gmail.com),
-[Anna Toaze](anna.tz@live.com),
-[Suleiman Abdul Samad](issakdanlity@gmail.com),
+[Daniel Froom](mailto:danifroom@gmail.com),
+[Demi Oyebanji](mailto:oluwademiladeoyebanji@outlook.com),
+[Ana Cano](mailto:anacanoht@gmail.com),
+[Anna Toaze](mailto:anna.tz@live.com),
+[Suleiman Abdul Samad](mailto:issakdanlity@gmail.com),
 
 _____________________________________________________________________________________________________
  
