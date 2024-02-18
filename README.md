@@ -119,9 +119,11 @@ In the **back-end:**
 The new lottery request is received in Solidity by the [Generate New Lottery](Solidity_Files/GenerateNewLottery.sol) Solidity file. 
 
 In this file, a smart contract exists for each possible lottery that Lottix offers. Here's an example for the **EuroJackpot Lottery** nicknamed **EuroJack**
+
 ![ExampleContract](Resources/Grabs/EuroJackContract.png)
 
 Each lottery includes a function called **invest** which takes a user's package selection and an amount to be invested as arguments then sets the parameters for their lottery accordingly.
+
 ![InvestFunction](Resources/Grabs/InvestFunction.png)
 
 
